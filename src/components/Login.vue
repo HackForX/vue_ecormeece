@@ -35,7 +35,7 @@
         <!-- Login Button -->
         <button
           type="submit"
-          class="w-full bg-indigo-800-500 text-white py-3 rounded-md hover:bg-indigo-800-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-black-500"
+          class="w-full bg-indigo-800 text-white py-3 rounded-md hover:bg-indigo-800-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-black-500"
           :disabled="loading"
         >
           {{ loading ? "Logging in..." : "Login" }}

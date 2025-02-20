@@ -35,12 +35,12 @@
               >
             </li>
 
-            <li v-if="isAuthenticated">
+            <li v-if="isAuthenticated && isAdmin">
               <router-link to="/admin" class="text-white hover:text-gray-200"
                 >Admin</router-link
               >
             </li>
-            <li class="relative">
+            <li class="relative" v-if="isAuthenticated && !isAdmin">
               <button
                 @click="toggleCartOverlay"
                 class="relative flex items-center"
@@ -62,7 +62,7 @@
               >
             </li>
             <li v-if="isAuthenticated">
-              <button @click="logout" class="text-white hover:text-gray-200">
+              <button @click="Logout" class="text-white hover:text-gray-200">
                 Logout
               </button>
             </li>
@@ -78,12 +78,8 @@
               >Home</router-link
             >
           </li>
-          <li>
-            <router-link to="/checkout" class="text-white hover:text-gray-200"
-              >Checkout</router-link
-            >
-          </li>
-          <li v-if="isAuthenticated">
+
+          <li v-if="isAuthenticated && isAdmin">
             <router-link to="/admin" class="text-white hover:text-gray-200"
               >Admin</router-link
             >
@@ -98,7 +94,7 @@
               Logout
             </button>
           </li>
-          <li class="relative">
+          <li class="relative" v-if="isAuthenticated && !isAdmin">
             <button
               @click="toggleCartOverlay"
               class="relative flex items-center"
@@ -223,17 +219,20 @@ export default {
   },
   computed: {
     ...mapGetters(["isAuthenticated", "cart", "cartCount", "cartTotal"]),
+    isAdmin() {
+      const user = JSON.parse(localStorage.getItem("user"));
+      return user && user.role === "admin"; // Check if the user role is admin
+    },
     showMenu() {
       return !["/login", "/register"].includes(this.$route.path);
     },
   },
   methods: {
-    ...mapActions([
-      "logout",
-      "removeFromCart",
-      "increaseQuantity",
-      "decreaseQuantity",
-    ]),
+    ...mapActions(["removeFromCart", "increaseQuantity", "decreaseQuantity"]),
+    async Logout() {
+      await this.$store.dispatch("logout");
+      this.$router.push("/login");
+    },
     toggleCartOverlay() {
       this.isCartOverlayVisible = !this.isCartOverlayVisible;
     },

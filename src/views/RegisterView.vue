@@ -1,19 +1,18 @@
+<!-- views/RegisterView.vue -->
 <template>
-  <div>
-    <h1>Register</h1>
-    <Register @register="register" />
+  <div class="flex items-center justify-center min-h-screen bg-gray-100">
+    <Register />
   </div>
 </template>
 
 <script>
-import { mapActions } from 'vuex';
 import Register from '../components/Register.vue';
 
+
 export default {
-  name: 'RegisterView',
-  components: { Register },
-  methods: {
-    ...mapActions(['register']),
+  name: "RegisterView",
+  components: {
+    Register,
   },
 };
 </script>

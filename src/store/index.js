@@ -6,7 +6,7 @@ export default createStore({
     products: [],
     cart: [],
     orders: [],
-    user: null,
+    user: JSON.parse(localStorage.getItem("user")) || null,
     token: localStorage.getItem("token") || "",
   },
   mutations: {
@@ -68,15 +68,18 @@ export default createStore({
     LOGOUT(state) {
       state.user = null;
       state.token = "";
+      localStorage.removeItem("user");
       localStorage.removeItem("token"); // Remove token from localStorage
-      delete axios.defaults.headers.common["Authorization"]; // Remove auth header
+      delete axios.defaults.headers.common["Authorization"];
+      // this.$router.push("/login");
+      // Remove auth header
     },
   },
   actions: {
     async fetchProducts({ commit, state }) {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/admin/products`,
+          `${import.meta.env.VITE_API_BASE_URL}/user/products`,
 
           { headers: { Authorization: `Bearer ${state.token}` } }
         );
@@ -87,12 +90,50 @@ export default createStore({
     },
     async fetchOrders({ commit, state }) {
       try {
-        const response = await axios.get("/api/orders", {
-          headers: { Authorization: `Bearer ${state.token}` },
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/user/orders`,
+          {
+            headers: { Authorization: `Bearer ${state.token}` },
+          }
+        );
         commit("SET_ORDERS", response.data);
       } catch (error) {
         console.error("Error fetching orders:", error);
+      }
+    },
+    async placeOrder({ state, commit }) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/user/orders`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${state.token}`,
+            },
+            body: JSON.stringify({
+              user_id: 1, // Change this dynamically
+              customer_name: state.user.name,
+              customer_email: state.user.email,
+              shipping_address: state.user.address,
+              items: state.cart.map((item) => ({
+                product_id: item.id,
+                quantity: item.quantity,
+              })),
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          commit("SET_CART", []);
+          return { success: true, message: result.message };
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        return { success: false, message: "Failed to place order." };
       }
     },
     async addProduct({ commit, state }, productData) {
@@ -149,6 +190,17 @@ export default createStore({
         toast.error("Failed to delete product.", { timeout: 2000 });
       }
     },
+    async deleteOrder({ commit, state }, { id }) {
+      const toast = useToast();
+      await axios.delete(
+        `${import.meta.env.VITE_API_BASE_URL}/admin/orders/${id}`,
+        {
+          headers: { Authorization: `Bearer ${state.token}` },
+        }
+      );
+      toast.success("Order deleted successfully!", { timeout: 2000 });
+      // dispatch("fetchOrders");
+    },
     addToCart({ commit, state }, product) {
       const toast = useToast();
       const existingProduct = state.cart.find((p) => p.id === product.id);
@@ -201,23 +253,51 @@ export default createStore({
           `${import.meta.env.VITE_API_BASE_URL}/login`,
           user
         );
-        commit("SET_TOKEN", response.data.access_token);
-        await this.dispatch("getUser"); // Fetch user details after login
+
+        const { access_token, user: userData } = response.data;
+
+        commit("SET_TOKEN", access_token);
+        commit("SET_USER", userData);
+
+        localStorage.setItem("user", JSON.stringify(userData)); // Store user in localStorage
+        localStorage.setItem("token", access_token);
+
+        axios.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${access_token}`; // Set global auth header
       } catch (error) {
         console.error("Error logging in:", error);
         throw error;
       }
     },
-    async getUser({ commit, state }) {
+
+    async register(
+      { commit },
+      { name, email, password, password_confirmation }
+    ) {
+      const toast = useToast();
       try {
-        const response = await axios.get("/api/auth/user", {
-          headers: { Authorization: `Bearer ${state.token}` },
-        });
-        commit("SET_USER", response.data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL}/register`,
+          {
+            name,
+            email,
+            password,
+            password_confirmation,
+          }
+        );
+        const { user, token } = response.data;
+        commit("setUser", user);
+        commit("setToken", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("token", token);
+        toast.success("User registered successfully!", { timeout: 2000 });
+      } catch (err) {
+        console.log("Error ", err);
+        throw err; // Handle errors here
       }
     },
+
     logout({ commit }) {
       commit("LOGOUT");
     },

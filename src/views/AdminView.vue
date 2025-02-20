@@ -181,10 +181,38 @@
     </div>
 
     <!-- Orders Tab Content -->
+
     <div v-if="activeTab === 'orders'">
-      <!-- Orders Table or Content Here -->
-      <div class="text-center text-gray-500 py-10">
-        <p class="text-lg">Orders section coming soon...</p>
+      <div v-if="orders.length > 0" class="space-y-6">
+        <div
+          v-for="order in orders"
+          :key="order.id"
+          class="p-6 border border-gray-200 rounded-lg hover:shadow-md transition-all duration-300"
+        >
+          <h3 class="text-xl font-semibold text-gray-900">
+            Order #{{ order.id }}
+          </h3>
+          <p class="text-sm text-gray-600 mt-1">
+            Customer: {{ order.customer_name }}
+          </p>
+          <p class="text-sm text-gray-600">Email: {{ order.customer_email }}</p>
+          <p class="text-sm text-gray-600">
+            Total Items: {{ order.items.length }}
+          </p>
+          <p class="text-sm text-black-600 font-semibold mt-2">
+            Total Price: MMK{{ order.total }}
+          </p>
+          <button
+            @click="confirmDeleteOrder(order.id)"
+            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all duration-300 flex items-center mt-4"
+          >
+            <span class="material-icons mr-2">delete</span>
+            Delete Order
+          </button>
+        </div>
+      </div>
+      <div v-else class="text-center text-gray-500 py-10">
+        <p class="text-lg">No orders available.</p>
       </div>
     </div>
   </div>
@@ -209,7 +237,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["products"]),
+    ...mapGetters(["products","orders"]),
   },
   methods: {
     ...mapActions([
@@ -217,6 +245,8 @@ export default {
       "addProduct",
       "updateProduct",
       "deleteProduct",
+      "fetchOrders",
+      "deleteOrder"
     ]),
 
     getImageUrl(photoPath) {
@@ -284,10 +314,18 @@ export default {
         this.fetchProducts(); // Reload product list after deletion
       }
     },
+     async confirmDeleteOrder(orderId) {
+    const confirmDelete = confirm("Are you sure you want to delete this order?");
+    if (confirmDelete) {
+      await this.deleteOrder({ id: orderId });
+      this.fetchOrders(); // Reload order list after deletion
+    }
+  },
   },
 
   mounted() {
     this.fetchProducts();
+     this.fetchOrders();
   },
 };
 </script>

@@ -107,6 +107,7 @@
               <button
                 type="submit"
                 class="w-full bg-indigo-700 text-white py-4 rounded-lg font-semibold hover:from-black-700 hover:to-black-700 transition-all duration-300"
+                :disabled="isProcessing"
               >
                 Complete Purchase
               </button>
@@ -119,6 +120,9 @@
 </template>
 
 <script>
+import { useToast } from "vue-toastification";
+import axios from "axios";
+
 export default {
   props: {
     cart: Array,
@@ -131,23 +135,62 @@ export default {
         address: "",
         email: "",
       },
+      isProcessing: false,
     };
+  },
+  getters: {
+    userId: (state) => state.user.id,
   },
   methods: {
     getImageUrl(photoPath) {
       return `${import.meta.env.VITE_SERVER}/${photoPath}`;
     },
-    handleSubmit() {
-      this.$emit("checkout", {
-        products: this.cart,
-        totalPrice: this.total,
-        user: this.user,
-      });
+    async placeOrder() {
+      try {
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user"));
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL}/user/orders`,
+       
+          {
+            user_id: user.id,
+            customer_name: this.user.name,
+            customer_email: this.user.email,
+            shipping_address: this.user.address,
+            items: this.cart.map((item) => ({
+              product_id: item.id,
+              quantity: item.quantity,
+            })),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // Include the token in the request
+            },
+          }
+        );
+
+        return { success: true, message: "Order placed successfully" };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.response?.data?.message || "Failed to place order.",
+        };
+      }
+    },
+    async handleSubmit() {
+      const toast = useToast();
+      this.isProcessing = true;
+
+      const result = await this.placeOrder();
+
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+
+      this.isProcessing = false;
     },
   },
 };
 </script>
-
-<style scoped>
-/* Custom styles can be added here if needed */
-</style>
